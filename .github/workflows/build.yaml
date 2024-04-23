@@ -1,0 +1,39 @@
+
+
+name: Build Front
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v1
+
+      - name: Checkout kustomize repository
+        uses: actions/checkout@v2
+        with:
+          repository: neotusca/2024-k8s-manifest-repo
+          ref: main
+          token: ${{ secrets.ACTION_TOKEN }}
+          path: 2024-k8s-manifest-repo
+
+      - name: Update Kubernetes resources
+        run: |
+          echo ${{ steps.login-ecr.outputs.registry }}
+          echo ${{ steps.image-info.outputs.ecr_repository }}
+          echo ${{ steps.image-info.outputs.image_tag }}
+          cd 2024-k8s-manifest-repo/overlays/dev/
+          kustomize edit set image ${{ steps.login-ecr.outputs.registry}}/${{ steps.image-info.outputs.ecr_repository }}=${{ steps.login-ecr.outputs.registry}}/${{ steps.image-info.outputs.ecr_repository }}:${{ steps.image-info.outputs.image_tag }}
+          cat kustomization.yaml
+
+      - name: Commit files
+        run: |
+          cd 2024-k8s-manifest-repo
+          git config --global user.email "neotusca@gmail.com"
+          git config --global user.name "neotusca"
+          git commit -am "Update image tag"
+          git push -u origin main
